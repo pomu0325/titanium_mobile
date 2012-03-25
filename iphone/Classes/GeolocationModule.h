@@ -23,6 +23,8 @@
 	NSString *purpose;
 	BOOL trackingHeading;
 	BOOL trackingLocation;
+	BOOL trackingSignificant;
+	BOOL significant;
 	
 	NSRecursiveLock* lock;
 }
@@ -33,6 +35,7 @@
 @property(nonatomic,readwrite,assign) NSNumber *showCalibration;
 @property(nonatomic,readwrite,assign) NSNumber *distanceFilter;
 @property(nonatomic,readwrite,assign) NSNumber *headingFilter;
+@property(nonatomic,readwrite,assign) NSNumber *useSignificant;
 @property(nonatomic,readonly) NSNumber *locationServicesEnabled;
 @property(nonatomic,readonly) NSNumber* locationServicesAuthorization;
 

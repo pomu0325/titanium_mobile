@@ -173,6 +173,9 @@ extern BOOL const TI_APPLICATION_ANALYTICS;
 	if (trackingLocation) {
 		[locationManager stopUpdatingLocation];
 	}
+	if (trackingSignificant) {
+		[locationManager stopMonitoringSignificantLocationChanges];
+	}
 	RELEASE_TO_NIL_AUTORELEASE(locationManager);
 	[lock unlock];
 }
@@ -309,6 +312,7 @@ extern BOOL const TI_APPLICATION_ANALYTICS;
 {
 	BOOL startHeading = NO;
 	BOOL startLocation = NO;
+	BOOL startSignificant = NO;
 	
 	if (singleHeading!=nil && [singleHeading count] > 0)
 	{
@@ -324,10 +328,14 @@ extern BOOL const TI_APPLICATION_ANALYTICS;
 	}
 	if (!startLocation && [self _hasListeners:@"location"])
 	{
-		startLocation = YES;
+		if (!significant) {
+			startLocation = YES;
+		} else {
+			startSignificant = YES;
+		}
 	}
 	
-	if (startHeading || startLocation)
+	if (startHeading || startLocation || startSignificant)
 	{
 		CLLocationManager *lm = [self locationManager];
 		if (startHeading && trackingHeading==NO)
@@ -340,8 +348,13 @@ extern BOOL const TI_APPLICATION_ANALYTICS;
 			[lm startUpdatingLocation];
 			trackingLocation = YES;
 		}
+		if (startSignificant && trackingSignificant==NO)
+		{
+			[lm startMonitoringSignificantLocationChanges];
+			trackingSignificant = YES;
+		}
 	}
-	else if ((!startHeading || !startLocation) && locationManager!=nil)
+	else if ((!startHeading || !startLocation || !startSignificant) && locationManager!=nil)
 	{
 		CLLocationManager *lm = [self locationManager];
 		if (startHeading==NO && trackingHeading)
@@ -354,12 +367,18 @@ extern BOOL const TI_APPLICATION_ANALYTICS;
 			trackingLocation = NO;
 			[lm stopUpdatingLocation];
 		}
-		if ((startHeading==NO && startLocation==NO) ||
-			(trackingHeading==NO && trackingLocation==NO))
+		if (startSignificant==NO && trackingSignificant)
+		{
+			trackingSignificant = NO;
+			[lm stopMonitoringSignificantLocationChanges];
+		}
+		if ((startHeading==NO && startLocation==NO && startSignificant==NO) ||
+			(trackingHeading==NO && trackingLocation==NO && trackingSignificant==NO))
 		{
 			[self shutdownLocationManager];
 			trackingLocation = NO;
 			trackingHeading = NO;
+			trackingSignificant = NO;
 		}
 	}
 }
@@ -403,6 +422,11 @@ extern BOOL const TI_APPLICATION_ANALYTICS;
 			trackingLocation = NO;
 			[locationManager stopUpdatingLocation];
 		}
+		if (trackingSignificant)
+		{
+			trackingSignificant = NO;
+			[locationManager stopMonitoringSignificantLocationChanges];
+		}
 	}
 	
 	if (check && ![self _hasListeners:@"heading"] && ![self _hasListeners:@"location"])
@@ -411,6 +435,7 @@ extern BOOL const TI_APPLICATION_ANALYTICS;
 		[self shutdownLocationManager];
 		trackingLocation = NO;
 		trackingHeading = NO;
+		trackingSignificant = NO;
 		RELEASE_TO_NIL(singleHeading);
 		RELEASE_TO_NIL(singleLocation);
 	}
@@ -569,6 +594,17 @@ extern BOOL const TI_APPLICATION_ANALYTICS;
 	}
 }
 
+-(NSNumber*)useSignificant
+{
+	return NUMBOOL(significant);
+}
+
+-(void)setUseSignificant:(NSNumber *)value
+{
+	ENSURE_UI_THREAD(setUseSignificant,value);
+	significant = [TiUtils boolValue:value];
+}
+
 -(NSNumber*)showCalibration
 {
 	return NUMBOOL(calibration);
@@ -600,6 +636,7 @@ extern BOOL const TI_APPLICATION_ANALYTICS;
 	[self shutdownLocationManager];
 	trackingHeading = NO;
 	trackingLocation = NO;
+	trackingSignificant = NO;
 	[lock unlock];
 	// must be on UI thread
 	TiThreadPerformOnMainThread(^{[self startStopLocationManagerIfNeeded];}, NO);
