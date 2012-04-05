@@ -204,6 +204,40 @@ DEFINE_DEF_BOOL_PROP(suppressReturn,YES);
 	return nil;
 }
 
+#pragma mark keyboardChange
+-(void)_listenerAdded:(NSString *)type count:(int)count
+{
+    //[super _listenerAdded:type count:count];
+    if (count == 1 && [type isEqualToString:@"keyboardChange"])
+    {
+        WARN_IF_BACKGROUND_THREAD_OBJ;
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardChanged:)name:UIKeyboardWillChangeFrameNotification object:nil];
+    }
+}
+
+-(void)_listenerRemoved:(NSString *)type count:(int)count
+{
+    //[super _listenerRemoved:type count:count];
+    if (count == 0 && [type isEqualToString:@"keyboardChange"])
+    {
+        WARN_IF_BACKGROUND_THREAD_OBJ;
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
+    }
+}
+
+-(void)keyboardChanged:(NSNotification*)notification
+{
+    if ([self _hasListeners:@"keyboardChange"])
+    {
+        NSDictionary *info = [notification userInfo];
+        NSValue *keyValue = [info objectForKey:UIKeyboardFrameEndUserInfoKey];
+        CGSize kbSize = [keyValue CGRectValue].size;
+        float height = kbSize.height;
+        
+        NSDictionary *e = [NSDictionary dictionaryWithObjectsAndKeys:NUMFLOAT(height), @"height", nil];
+        [self fireEvent:@"keyboardChange" withObject:e];
+    }
+}
 
 @end
 

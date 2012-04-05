@@ -29,6 +29,8 @@
 
 -(BOOL)focused;
 
+-(void)keyboardChanged:(NSNotification*)notification;
+
 @end
 
 #endif
